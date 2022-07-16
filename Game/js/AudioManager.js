@@ -9,17 +9,29 @@ var AudioManager = (function() {
         init: function() {
 
             try {
-                this.context = new webkitAudioContext();
+                this.context = new AudioContext();
             }
             catch(e) {
-                console.log('Web Audio API is not supported in this browser');
+                console.log('Web Audio API is not supported in this browser', e);
             }
 
             this.songSource = null;
+            this.suspended = true;
         },
 
         isSupported: function() {
             return this.context != null;
+        },
+
+        isSuspended: function() {
+            return this.suspended;
+        },
+
+        resume: function() {
+            this.context.resume().then(() => {
+                console.log('Playback resumed successfully');
+                this.suspended = false;
+            });
         },
 
         playSound: function(sound, volume) {
@@ -32,13 +44,13 @@ var AudioManager = (function() {
                 source.connect(this.context.destination);
             }
             else {
-                var gain = this.context.createGainNode();
+                var gain = this.context.createGain();
                 source.connect(gain);
                 gain.connect(this.context.destination);
                 gain.gain.value = volume;
             }
 
-            source.noteOn(0);
+            source.start(0);
         },
 
         playSong: function(song) {
@@ -54,7 +66,7 @@ var AudioManager = (function() {
             this.songSource = this.context.createBufferSource();
             this.songSource.loop = true;
 
-            var gain = this.context.createGainNode();
+            var gain = this.context.createGain();
             this.songSource.connect(gain);
             gain.connect(this.context.destination);
             gain.gain.value = 0.2;
@@ -62,12 +74,12 @@ var AudioManager = (function() {
             this.songSource.buffer = buffer;
 
 
-            this.songSource.noteOn(0);
+            this.songSource.start(0);
         },
 
         stopSong: function() {
             if (this.songSource == null) return;
-            this.songSource.noteOff(0);
+            this.songSource.start(0);
         }
     });
 })();
