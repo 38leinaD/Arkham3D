@@ -1,0 +1,14 @@
+01.03.2013
+--------------------
+* Created ShaderProgram, VertexBuffer, AssetManager and Texture based on lessons learned from last #1GAM
+* Using Sublime Text 2 instead of WebStorm
+
+05.03.2013
+-------------------
+* how to define different props for the same base tile image? e.g. horizontal/vertical door. i have to dupilcate image at the moment...
+
+http://updates.html5rocks.com/2011/10/Let-Your-Content-Do-the-Talking-Fullscreen-API
+webworkers
+http://www.marketjs.com/blog/Making-money-with-HTML5-games
+https://github.com/inequation/gamepad.js
+http://stemkoski.github.com/Three.js/

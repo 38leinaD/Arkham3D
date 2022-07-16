@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+
+    <title>Arkham3D</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="css/game.css">
+
+    <script id="color-fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform vec4 uColor;
+
+      void main(void) {
+        gl_FragColor = uColor;
+      }
+    </script>
+
+    <script id="color-vs" type="x-shader/x-vertex">
+      attribute vec3 aVertexPosition;
+
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+
+      void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+      }
+    </script>
+
+    <script id="tex-fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D uTex;
+      uniform vec4 uColor;
+      varying vec2 vTextureCoord;
+
+
+      void main(void) {
+        vec4 baseColor = texture2D(uTex, vTextureCoord);
+        if (baseColor.r == 1.0 && baseColor.g == 0.0 && baseColor.b == 1.0) {
+          discard;
+        }
+        gl_FragColor = baseColor * uColor;
+      }
+    </script>
+
+    <script id="tex-vs" type="x-shader/x-vertex">
+      attribute vec3 aVertexPosition;
+      attribute vec2 aTextureCoord;
+
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        vTextureCoord = aTextureCoord;
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+      }
+    </script>
+
+    <script id="surface-vs" type="x-shader/x-vertex">
+      attribute vec3 aVertexPosition;
+      attribute vec3 aVertexNormal;
+      attribute vec2 aTextureCoord;
+
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+
+      varying vec3 vVertexWorldPos;
+      varying vec3 vVertexNormal;
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        vVertexWorldPos = aVertexPosition;
+        vVertexNormal = aVertexNormal;
+        vTextureCoord = aTextureCoord;
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+      }
+    </script>
+
+    <script id="surface-fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D uTex;
+
+      uniform vec3 uLightPosition;
+      uniform float ulightIntensity;
+
+      varying vec3 vVertexWorldPos;
+      varying vec3 vVertexNormal;
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        vec4 baseColor = texture2D(uTex, vTextureCoord);
+        if (baseColor.r == 1.0 && baseColor.g == 0.0 && baseColor.b == 1.0) {
+          discard;
+        }
+
+        vec3 lightDir = normalize(uLightPosition - vVertexWorldPos);
+        vec3 normal = normalize(vVertexNormal);
+        vec4 fragColor = vec4(baseColor.rgb * pow(ulightIntensity, length(vVertexWorldPos - uLightPosition)/0.3) * max(-dot(lightDir, normal), dot(lightDir, normal)), 1.0);
+
+        float fog_coord = (gl_FragCoord.z / gl_FragCoord.w) / 500.0;
+        float fog = fog_coord * 6.0;
+        vec4 fog_color = vec4(0.188, 0.243, 0.329, 0.0);
+
+        gl_FragColor = mix(fog_color, fragColor, clamp(1.0-fog, 0.0, 1.0));
+      }
+    </script>
+
+      <script id="entity-vs" type="x-shader/x-vertex">
+      attribute vec3 aVertexPosition;
+      attribute vec3 aVertexNormal;
+      attribute vec2 aTextureCoord;
+
+      uniform mat4 uMMatrix;
+      uniform mat4 uVMatrix;
+      uniform mat4 uPMatrix;
+
+      varying vec3 vVertexWorldPos;
+      varying vec3 vVertexNormal;
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        vVertexWorldPos = (uMMatrix * vec4(aVertexPosition, 1.0)).xyz;
+        vVertexNormal = aVertexNormal;
+        vTextureCoord = aTextureCoord;
+        gl_Position = uPMatrix * uVMatrix * uMMatrix * vec4(aVertexPosition, 1.0);
+      }
+    </script>
+
+    <script id="entity-fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform sampler2D uTex;
+
+      uniform vec3 uLightPosition;
+      uniform float ulightIntensity;
+
+      varying vec3 vVertexWorldPos;
+      varying vec3 vVertexNormal;
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        vec4 baseColor = texture2D(uTex, vTextureCoord);
+        if (baseColor.r == 1.0 && baseColor.g == 0.0 && baseColor.b == 1.0) {
+          discard;
+        }
+
+        vec3 lightDir = normalize(uLightPosition - vVertexWorldPos);
+        vec3 normal = normalize(vVertexNormal);
+        vec4 fragColor = vec4(baseColor.rgb, 1.0);
+
+        float fog_coord = (gl_FragCoord.z / gl_FragCoord.w) / 500.0;
+        float fog = fog_coord * 6.0;
+        vec4 fog_color = vec4(0.188, 0.243, 0.329, 0.0);
+
+        gl_FragColor = mix(fog_color, fragColor, clamp(1.0-fog, 0.0, 1.0));
+      }
+    </script>
+
+    <script id="colorsprite-vs" type="x-shader/x-vertex">
+      precision mediump float;
+
+      attribute vec3 a_position;
+      attribute vec4 a_color;
+      attribute float a_size;
+      attribute float a_distance;
+
+      uniform mat4 u_worldView;
+      uniform float u_viewportWidth;
+
+      varying vec4 v_color;
+
+      void main()
+      {
+        vec4 position = vec4(a_position, 1.0);
+          gl_Position =  u_worldView * position;
+          gl_PointSize = 0.6 * a_size * u_viewportWidth / a_distance;
+          //gl_Position =  vec4(0.1, 0.1, 0.1, -1.0);
+          //gl_PointSize = 10.0;
+          v_color = a_color;
+      }
+    </script>
+
+    <script id="colorsprite-fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec4 v_color;
+
+      void main()
+      {
+          gl_FragColor = v_color;
+      }
+    </script>
+
+  </head>
+  <body>
+    <div id="container"></div>
+    <script type="text/javascript" src="js/lib/gl-matrix.js"></script>
+    <script type="text/javascript" src="js/lib/zepto.js"></script>
+    <script type="text/javascript" src="js/lib/resig.js"></script>
+    <script type="text/javascript" src="js/lib/webgl-debug.js"></script>
+    <script type="text/javascript" src="js/lib/dat.gui.js"></script>
+
+    <script type="text/javascript" src="js/AudioManager.js"></script>
+
+    <script type="text/javascript" src="js/Util.js"></script>
+    <script type="text/javascript" src="js/Interpolation.js"></script>
+    <script type="text/javascript" src="js/Player.js"></script>
+
+    <script type="text/javascript" src="js/Wall.js"></script>
+    <script type="text/javascript" src="js/Tile.js"></script>
+    <script type="text/javascript" src="js/WallTile.js"></script>
+    <script type="text/javascript" src="js/HedgeTile.js"></script>
+    <script type="text/javascript" src="js/DoorTile.js"></script>
+    <script type="text/javascript" src="js/Entity.js"></script>
+    <script type="text/javascript" src="js/Key.js"></script>
+    <script type="text/javascript" src="js/Fireball.js"></script>
+    <script type="text/javascript" src="js/NPC.js"></script>
+    <script type="text/javascript" src="js/Snake.js"></script>
+    <script type="text/javascript" src="js/Wraith.js"></script>
+    <script type="text/javascript" src="js/Acolyte.js"></script>
+    <script type="text/javascript" src="js/Bat.js"></script>
+    <script type="text/javascript" src="js/Ammo.js"></script>
+    <script type="text/javascript" src="js/Health.js"></script>
+    <script type="text/javascript" src="js/Treasure.js"></script>
+
+    <script type="text/javascript" src="js/World.js"></script>
+    <script type="text/javascript" src="js/Raycaster.js"></script>
+
+    <script type="text/javascript" src="js/Texture.js"></script>
+    <script type="text/javascript" src="js/TextureAtlas.js"></script>
+    <script type="text/javascript" src="js/BitmapFont.js"></script>
+    <script type="text/javascript" src="js/AssetManager.js"></script>
+    <script type="text/javascript" src="js/ShaderProgram.js"></script>
+    <script type="text/javascript" src="js/TextureShader.js"></script>
+    <script type="text/javascript" src="js/VertexBuffer.js"></script>
+
+    <script type="text/javascript" src="js/WorldGenerator.js"></script>
+
+    <script type="text/javascript" src="js/Scene.js"></script>
+    <script type="text/javascript" src="js/SceneManager.js"></script>
+    <script type="text/javascript" src="js/DemoScene.js"></script>
+    <script type="text/javascript" src="js/GeneratorScene.js"></script>
+    <script type="text/javascript" src="js/WorldGeneratorScene.js"></script>
+    <script type="text/javascript" src="js/MessageScene.js"></script>
+    <script type="text/javascript" src="js/DifficultySelectionScene.js"></script>
+    <script type="text/javascript" src="js/IntroScene.js"></script>
+    <script type="text/javascript" src="js/HudLayer.js"></script>
+    <script type="text/javascript" src="js/SkyLayer.js"></script>
+    <script type="text/javascript" src="js/WorldScene.js"></script>
+    <script type="text/javascript" src="js/InitScene.js"></script>
+
+    <script type="text/javascript" src="js/input.js"></script>
+    <script type="text/javascript" src="js/game.js"></script>
+  </body>
+</html>
