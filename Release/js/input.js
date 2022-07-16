@@ -117,6 +117,9 @@ var Input = (function() {
     return Class.extend({
         init: function() {
             document.addEventListener('keydown', function(e) {
+                if (G.audioManager.isSuspended()) {
+                    G.audioManager.resume();
+                }
                 setKey(e, true);
                 e.preventDefault();
                 e.stopImmediatePropagation();
